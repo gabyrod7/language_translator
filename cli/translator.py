@@ -1,12 +1,10 @@
 from transformers import MarianMTModel, MarianTokenizer
-from dotenv import load_dotenv
 import os
 
-load_dotenv()
-hf_token = os.environ.get('HF_TOKEN')
-model_name = os.environ.get('MODEL_NAME')
-
 def translate_command(query, langs, verbose):
+    hf_token = os.environ.get('HF_TOKEN')
+    model_name = os.environ.get('MODEL_NAME')
+
     if not verbose:
         from transformers.utils import logging
         logging.disable_progress_bar()
