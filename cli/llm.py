@@ -13,9 +13,9 @@ def llm_command(source_lang: str, target_lang: str, text: str) -> None:
     llm_model_name = os.environ.get(PROVIDER_SPECS[llm_provider]['model_env'])
     llm_api_key = os.environ.get(PROVIDER_SPECS[llm_provider]['api_key_env'])
 
-    if llm_model_name == None:
+    if not llm_model_name:
         raise ValueError(f"No {PROVIDER_SPECS[llm_provider]['model_env']} environment variable found.")
-    if llm_api_key == None:
+    if not llm_api_key:
         raise ValueError(f"No {PROVIDER_SPECS[llm_provider]['api_key_env']} environment variable found.")
 
     result = translate_with_llm(llm_provider, llm_model_name, llm_api_key, source_lang, target_lang, text)
@@ -29,7 +29,7 @@ def translate_with_llm(llm_provider: str, llm_model_name: str, llm_api_key: str,
         return translate_with_anthropic()
     if llm_provider == 'gemini':
         return translate_with_gemini()
-    raise ValueError(f"The LLM provider {provider} is not supported inside this function!")
+    raise ValueError(f"The LLM provider {llm_provider} is not supported inside this function!")
 
 def translate_with_openai(llm_model_name: str, llm_api_key: str, source_lang: str, target_lang: str, text: str) -> str:
     print(f"Requesting translation from {source_lang} to {target_lang} from OpenAI for the following text:")
@@ -47,6 +47,7 @@ def translate_with_openai(llm_model_name: str, llm_api_key: str, source_lang: st
     except APIConnectionError as e:
         print("The server could not be reached")
         print(e.__cause__)
+        exit(1)
     except PermissionDeniedError as e:
         print(f'Status code {e.status_code} raised, permission denied.')
         print(' Cause: You don’t have access to the requested resource.')
@@ -62,3 +63,9 @@ def translate_with_openai(llm_model_name: str, llm_api_key: str, source_lang: st
         exit(1)
 
     return response.output_text
+
+def translate_with_anthropic(llm_model_name: str, llm_api_key: str, source_lang: str, target_lang: str, text: str) -> str:
+    raise NotImplementedError('Function not yet implemented')
+
+def translate_with_gemini(llm_model_name: str, llm_api_key: str, source_lang: str, target_lang: str, text: str) -> str:
+    raise NotImplementedError('Function not yet implemented')

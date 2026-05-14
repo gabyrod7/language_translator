@@ -47,7 +47,7 @@ def config_command(model_name: str, list_model_names: bool, llm_provider: str, l
         if not llm_provider:
             llm_provider = os.environ.get('LLM_PROVIDER')
 
-        set_llm_api_key(llm_provider)
+        llm_api_key = set_llm_api_key(llm_provider)
 
     if llm_set_model:
         if not llm_provider:
@@ -55,7 +55,7 @@ def config_command(model_name: str, list_model_names: bool, llm_provider: str, l
 
         llm_api_key = os.environ.get(PROVIDER_SPECS[llm_provider]['api_key_env'])
         if not llm_api_key:
-            set_llm_api_key(llm_provider)
+            llm_api_key = set_llm_api_key(llm_provider)
 
         if llm_provider == 'openai':
             from openai import OpenAI
@@ -71,7 +71,7 @@ def config_command(model_name: str, list_model_names: bool, llm_provider: str, l
             llm_model_name = ''
             while llm_model_name not in model_ids:
                 llm_model_name = input('Input model name: ')
-        elif llm_provider == 'anothropic':
+        elif llm_provider == 'anthropic':
             pass
         elif llm_provider == 'gemini':
             pass
@@ -79,7 +79,7 @@ def config_command(model_name: str, list_model_names: bool, llm_provider: str, l
         set_key('.env', PROVIDER_SPECS[llm_provider]['model_env'], llm_model_name)
         print(f"{PROVIDER_SPECS[llm_provider]['model_env']} has been set to {llm_model_name}")
 
-def set_llm_api_key(llm_provider: str) -> None:
+def set_llm_api_key(llm_provider: str) -> str:
     llm_api_key = input(f'Enter API key for {llm_provider}: ').strip()
 
     if llm_api_key == '':
@@ -88,3 +88,5 @@ def set_llm_api_key(llm_provider: str) -> None:
 
     set_key('.env', PROVIDER_SPECS[llm_provider]['api_key_env'], llm_api_key)
     print(f"{PROVIDER_SPECS[llm_provider]['api_key_env']} has been set.")
+
+    return llm_api_key
