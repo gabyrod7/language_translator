@@ -32,14 +32,16 @@ def translate_with_llm(llm_provider: str, llm_model_name: str, llm_api_key: str,
     raise ValueError(f"The LLM provider {provider} is not supported inside this function!")
 
 def translate_with_openai(llm_model_name: str, llm_api_key: str, source_lang: str, target_lang: str, text: str) -> str:
-    from openai import OpenAI, APIConnectionError, PermissionDeniedError, AuthenticationError
+    print(f"Requesting translation from {source_lang} to {target_lang} from OpenAI for the following text:")
+    print(text)
+    from openai import OpenAI, APIConnectionError, PermissionDeniedError, AuthenticationError, RateLimitError
     
     client = OpenAI(api_key=llm_api_key)
     
     try:
         response = client.responses.create(
             model=llm_model_name,
-            instructions=f"You are a {source_lang} to {target_lang} translator. Translate the given word or sentences.",
+            instructions=f"You are a {source_lang} to {target_lang} translator. Provide only the tranlation of the given text.",
             input=text,
         )
     except APIConnectionError as e:
@@ -49,15 +51,14 @@ def translate_with_openai(llm_model_name: str, llm_api_key: str, source_lang: st
         print(f'Status code {e.status_code} raised, permission denied.')
         print(' Cause: You don’t have access to the requested resource.')
         print(' Solution: Ensure you are using the correct API key, organization ID, and resource ID.')
-        raise Exception(e)
+        exit(1)
     except AuthenticationError as e:
         print(f"Status code {e.status_code} raised, authentication error")
         print(' Cause: Your API key or token was invalid, expired, or revoked.')
         print(' Solution: Check your API key or token and make sure it is correct and active. You may need to generate a new one from your account dashboard.')
-        raise Exception(e)
-    # except openai.RateLimitError as e:
-    #     print("A 429 status code was received; we should back off a bit.")
-    # except openai.APIStatusError as e:
-    #     print("Another non-200-range status code was received")
-    #     print(e.status_code)
-    #     print(e.response)
+        exit(1)
+    except RateLimitError as e:
+        print("A 429 status code was received; we should back off a bit.")
+        exit(1)
+
+    return response.output_text
