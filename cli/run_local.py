@@ -42,7 +42,7 @@ def list_local_models() -> None:
 
 def configure_local_model(model_name: str) -> None:
     if not model_name:
-        model_name = input("Enter model name: ")
+        model_name: str = input("Enter model name: ")
 
     if "opus-mt_tiny" not in model_name:
         raise ValueError(
@@ -58,18 +58,17 @@ def configure_local_model(model_name: str) -> None:
     if not model_found:
         raise ValueError(f"The model {model_name} could not be found.")
 
-    set_key(".env", "MODEL_NAME", model_name)
+    set_key(dotenv_path=".env", key_to_set="MODEL_NAME", value_to_set=model_name)
     os.environ["MODEL_NAME"] = model_name
     print(f"Default model set to {model_name}")
 
 
-def configure_hf_token(token: str) -> None:
-    if not token:
-        token = input("Enter HuggingFace token: ").strip()
+def configure_hf_token() -> None:
+    token: str = input("Enter HuggingFace token: ").strip()
 
     if not token:
         raise ValueError("The HuggingFace token cannot be empty or only white spaces.")
 
-    set_key(".env", "HF_TOKEN", token)
+    set_key(dotenv_path=".env", key_to_set="HF_TOKEN", value_to_set=token)
     os.environ["HF_TOKEN"] = token
     print("HuggingFace token has been set.")

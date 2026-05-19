@@ -44,10 +44,7 @@ def main():
     )
     run_local_config_parser.add_argument(
         "--set_hf_token",
-        nargs="?",
-        const="",
-        type=str,
-        default=None,
+        action="store_true",
         help="Set HuggingFace token",
     )
 
@@ -110,17 +107,17 @@ def main():
                 if (
                     not args.list_model_names
                     and args.set_model_name is None
-                    and args.set_hf_token is None
+                    and not args.set_hf_token
                 ):
                     run_local_config_parser.error(
-                        "Provide at least one configuration flag when using `run_local config`."
+                        message="Provide at least one configuration flag when using `run_local config`."
                     )
                 if args.list_model_names:
                     list_local_models()
                 if args.set_model_name is not None:
-                    configure_local_model(args.set_model_name)
-                if args.set_hf_token is not None:
-                    configure_hf_token(args.set_hf_token)
+                    configure_local_model(model_name=args.set_model_name)
+                if args.set_hf_token:
+                    configure_hf_token()
             else:
                 run_local_parser.print_help()
 
