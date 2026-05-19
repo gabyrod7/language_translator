@@ -1,0 +1,75 @@
+import os
+from huggingface_hub import list_models
+from dotenv import set_key
+
+
+def run_local_command(query, verbose):
+    from transformers import MarianMTModel, MarianTokenizer
+
+    hf_token = os.environ.get("HF_TOKEN")
+    model_name = os.environ.get("MODEL_NAME")
+
+    if not model_name:
+        raise ValueError(
+            "No model has been chosen. Use `run_local config --set_model_name` to set a model."
+        )
+
+    if verbose:
+        from transformers.utils import logging
+
+        logging.disable_progress_bar()
+    else:
+        print(f"Using model: {model_name}")
+
+    tokenizer = MarianTokenizer.from_pretrained(model_name, token=hf_token)
+    model = MarianMTModel.from_pretrained(model_name, token=hf_token)
+
+    inputs = tokenizer(query, return_tensors="pt", padding=True)
+    translated = model.generate(**inputs)
+
+    result = tokenizer.decode(translated[0], skip_special_tokens=True)
+
+    print(result)
+
+
+def list_local_models() -> None:
+    model_list = list_models(author="Helsinki-NLP")
+
+    for model in model_list:
+        if "opus-mt_tiny" in model.id:
+            print(model.id)
+
+
+def configure_local_model(model_name: str) -> None:
+    if not model_name:
+        model_name = input("Enter model name: ")
+
+    if "opus-mt_tiny" not in model_name:
+        raise ValueError(
+            f"The model name given is '{model_name}' but only the 'opus-mt_tiny' models are supported. Use 'run_local config --list_model_names' flag to find all supported models."
+        )
+
+    model_found = False
+    for model in list_models(author="Helsinki-NLP"):
+        if model_name == model.id:
+            model_found = True
+            break
+
+    if not model_found:
+        raise ValueError(f"The model {model_name} could not be found.")
+
+    set_key(".env", "MODEL_NAME", model_name)
+    os.environ["MODEL_NAME"] = model_name
+    print(f"Default model set to {model_name}")
+
+
+def configure_hf_token(token: str) -> None:
+    if not token:
+        token = input("Enter HuggingFace token: ").strip()
+
+    if not token:
+        raise ValueError("The HuggingFace token cannot be empty or only white spaces.")
+
+    set_key(".env", "HF_TOKEN", token)
+    os.environ["HF_TOKEN"] = token
+    print("HuggingFace token has been set.")

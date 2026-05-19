@@ -1,44 +1,154 @@
 import argparse
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
+
 def main():
-    parser = argparse.ArgumentParser(prog='Language Translator', description='', epilog='')
-    subparsers = parser.add_subparsers(dest='command', help='Available commands')
+    parser = argparse.ArgumentParser(
+        prog="Language Translator", description="", epilog=""
+    )
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
-    translate_parser = subparsers.add_parser('translate', help='Translates word or phrase from one languague to another')
-    translate_parser.add_argument('query', type=str, help='Word or phrase to translate')
-    translate_parser.add_argument('--langs', type=str, default='en_de', help='Choose the original and final langauge')
-    translate_parser.add_argument('--verbose', action='store_true', help='')
+    run_local_parser = subparsers.add_parser(
+        "run_local", help="Translate with a local model"
+    )
+    run_local_subparsers = run_local_parser.add_subparsers(
+        dest="run_local_command", help="Available run_local commands"
+    )
 
-    llm_parser = subparsers.add_parser('llm', help='Translates word or phrase from one languague to another')
-    llm_parser.add_argument('inp', type=str, help='Language of word or phrase to be translated from')
-    llm_parser.add_argument('out', type=str, help='Language of word or phrase to be translated into')
-    llm_parser.add_argument('query', type=str, help='Word or phrase to be translated')
+    run_local_translate_parser = run_local_subparsers.add_parser(
+        "translate", help="Run a local translation"
+    )
+    run_local_translate_parser.add_argument(
+        "query", type=str, help="Word or phrase to translate"
+    )
+    run_local_translate_parser.add_argument("--verbose", action="store_false", help="")
 
-    config_parser = subparsers.add_parser('config', help='Set configuration variables')
-    config_parser.add_argument('--llm_provider', type=str, default='', help="Choose LLM provider")
-    config_parser.add_argument('--llm_set_model', action='store_true', help="Choose LLM model from the given list.")
-    config_parser.add_argument('--llm_set_api_key', action='store_true', help="Set LLM API-key when requested")
-    config_group = config_parser.add_mutually_exclusive_group()
-    config_group.add_argument('--model_name', type=str, default='', help='Model name to use for translations')
-    config_group.add_argument('--list_model_names', action='store_true', help='Provide list of available models.')
+    run_local_config_parser = run_local_subparsers.add_parser(
+        "config", help="Configure local translation settings"
+    )
+    run_local_config_parser.add_argument(
+        "--list_model_names",
+        action="store_true",
+        help="Provide list of available local models.",
+    )
+    run_local_config_parser.add_argument(
+        "--set_model_name",
+        nargs="?",
+        const="",
+        type=str,
+        default=None,
+        help="Model name to use for local translations",
+    )
+    run_local_config_parser.add_argument(
+        "--set_hf_token",
+        nargs="?",
+        const="",
+        type=str,
+        default=None,
+        help="Set HuggingFace token",
+    )
+
+    run_remote_parser = subparsers.add_parser(
+        "run_remote", help="Translate with a remote model provider"
+    )
+    run_remote_subparsers = run_remote_parser.add_subparsers(
+        dest="run_remote_command_name", help="Available run_remote commands"
+    )
+
+    run_remote_translate_parser = run_remote_subparsers.add_parser(
+        "translate", help="Run a remote translation"
+    )
+    run_remote_translate_parser.add_argument(
+        "source_lang", type=str, help="Language of word or phrase to be translated from"
+    )
+    run_remote_translate_parser.add_argument(
+        "target_lang", type=str, help="Language of word or phrase to be translated into"
+    )
+    run_remote_translate_parser.add_argument(
+        "query", type=str, help="Word or phrase to be translated"
+    )
+
+    run_remote_config_parser = run_remote_subparsers.add_parser(
+        "config", help="Configure remote translation settings"
+    )
+    run_remote_config_parser.add_argument(
+        "--set_provider",
+        nargs="?",
+        const="",
+        type=str,
+        default=None,
+        help="Choose remote model provider",
+    )
+    run_remote_config_parser.add_argument(
+        "--set_api_key",
+        action="store_true",
+        help="Set remote provider API key when requested",
+    )
+    run_remote_config_parser.add_argument(
+        "--set_model",
+        action="store_true",
+        help="Choose a remote model from the given list.",
+    )
 
     args = parser.parse_args()
 
     match args.command:
-        case 'config':
-            from config import config_command
-            config_command(model_name=args.model_name, list_model_names=args.list_model_names, llm_provider=args.llm_provider, llm_set_model=args.llm_set_model, llm_set_api_key=args.llm_set_api_key)
+        case "run_local":
+            from run_local import (
+                configure_local_model,
+                list_local_models,
+                run_local_command,
+                configure_hf_token,
+            )
 
-        case 'translate':
-            from translator import translate_command
-            translate_command(args.query, args.langs, args.verbose)
+            if args.run_local_command == "translate":
+                run_local_command(args.query, args.verbose)
+            elif args.run_local_command == "config":
+                if (
+                    not args.list_model_names
+                    and args.set_model_name is None
+                    and args.set_hf_token is None
+                ):
+                    run_local_config_parser.error(
+                        "Provide at least one configuration flag when using `run_local config`."
+                    )
+                if args.list_model_names:
+                    list_local_models()
+                if args.set_model_name is not None:
+                    configure_local_model(args.set_model_name)
+                if args.set_hf_token is not None:
+                    configure_hf_token(args.set_hf_token)
+            else:
+                run_local_parser.print_help()
 
-        case 'llm':
-            from llm import llm_command
-            llm_command(args.inp, args.out, args.query)
+        case "run_remote":
+            from run_remote import (
+                configure_remote_api_key,
+                configure_remote_model,
+                configure_remote_provider,
+                run_remote_command,
+            )
+
+            if args.run_remote_command_name == "translate":
+                run_remote_command(args.source_lang, args.target_lang, args.query)
+            elif args.run_remote_command_name == "config":
+                if not (
+                    args.set_provider is not None or args.set_api_key or args.set_model
+                ):
+                    run_remote_config_parser.error(
+                        "Provide at least one configuration flag when using `run_remote config`."
+                    )
+                if args.set_provider is not None:
+                    configure_remote_provider(args.set_provider)
+                if args.set_api_key:
+                    configure_remote_api_key()
+                if args.set_model:
+                    configure_remote_model()
+            else:
+                run_remote_parser.print_help()
 
         case _:
             parser.print_help()
