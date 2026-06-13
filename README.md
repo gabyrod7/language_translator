@@ -1,5 +1,7 @@
 # Language Translator CLI
 
+[![CI](https://github.com/gabyrod7/language_translator/actions/workflows/ci.yml/badge.svg)](https://github.com/gabyrod7/language_translator/actions/workflows/ci.yml)
+
 A command-line tool to translate words, phrases, and sentences from one language to another using either a local model from Hugging Face or a remote LLM provider.
 
 The CLI currently supports:
