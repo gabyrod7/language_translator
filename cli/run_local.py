@@ -1,4 +1,5 @@
 import os
+import getpass
 from huggingface_hub import list_models
 from cli.config import save_environment_variable
 
@@ -64,7 +65,7 @@ def configure_local_model(model_name: str) -> None:
 
 
 def configure_hf_token() -> None:
-    token: str = input("Enter HuggingFace token: ").strip()
+    token: str = getpass.getpass("Enter HuggingFace token: ").strip()
 
     if not token:
         raise ValueError("The HuggingFace token cannot be empty or only white spaces.")

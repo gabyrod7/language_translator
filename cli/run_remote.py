@@ -1,5 +1,6 @@
 from openai.types.responses.response import Response
 import os
+import getpass
 
 # from dotenv import set_key
 from cli.config import save_environment_variable
@@ -491,7 +492,7 @@ def configure_remote_api_key() -> None:
         if flag != "1":
             return
 
-    remote_api_key = input(f"Enter API key for {remote_provider}: ").strip()
+    remote_api_key = getpass.getpass(f"Enter API key for {remote_provider}: ").strip()
 
     if not remote_api_key:
         raise ValueError("API key cannot be empty or only white spaces.")
