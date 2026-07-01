@@ -1,8 +1,8 @@
-# Language Translator CLI
+# py-polyglot
 
-[![CI](https://github.com/gabyrod7/language_translator/actions/workflows/ci.yml/badge.svg)](https://github.com/gabyrod7/language_translator/actions/workflows/ci.yml)
+[![CI](https://github.com/gabyrod7/py-polyglot/actions/workflows/ci.yml/badge.svg)](https://github.com/gabyrod7/py-polyglot/actions/workflows/ci.yml)
 
-A command-line tool to translate words, phrases, and sentences from one language to another using either a local model from Hugging Face or a remote LLM provider.
+A Python command-line tool to translate words, phrases, and sentences from one language to another using either a local model from Hugging Face or a remote LLM provider.
 
 The CLI currently supports:
 
@@ -32,8 +32,8 @@ python -m pip install .
 Local translation uses Hugging Face models from Helsinki-NLP. Only models whose names contain `opus-mt_tiny` are supported. Before translating a word, phrase, or sentence, you must choose a model with `run_local config`:
 
 ```bash
-uv run python cli/main.py run_local config --list_model_names
-uv run python cli/main.py run_local config --set_model_name Helsinki-NLP/opus-mt_tiny-en-es
+uv run py-polyglot run_local config --list_model_names
+uv run py-polyglot run_local config --set_model_name Helsinki-NLP/opus-mt_tiny-en-es
 ```
 
 The optional `--list_model_names` flag prints the available local models. The `--set_model_name` flag saves the model name in the local configuration file. If no model name is provided, the CLI will prompt you for one.
@@ -43,7 +43,7 @@ Each local model is trained for a specific source and target language pair. That
 Translate text locally:
 
 ```bash
-uv run python cli/main.py run_local translate "hello"
+uv run py-polyglot run_local translate "hello"
 ```
 
 ## Remote Translation
@@ -53,13 +53,13 @@ Remote translation uses one of the supported LLM providers: `openai`, `anthropic
 Set the remote provider. If no provider is given, the CLI will prompt you for one:
 
 ```bash
-uv run python cli/main.py run_remote config --set_provider openai
+uv run py-polyglot run_remote config --set_provider openai
 ```
 
 Set the API key and a model for the configured provider:
 
 ```bash
-uv run python cli/main.py run_remote config --set_api_key --set_model
+uv run py-polyglot run_remote config --set_api_key --set_model
 ```
 
 A list of available models will be printed to screen and the user will be requested to input a model name. If a model has already been set, the CLI will ask if the user wants to update the model. 
@@ -67,7 +67,7 @@ A list of available models will be printed to screen and the user will be reques
 Translate text remotely:
 
 ```bash
-uv run python cli/main.py run_remote translate "English" "Spanish" "hello"
+uv run py-polyglot run_remote translate "English" "Spanish" "hello"
 ```
 
 ## Configuration
