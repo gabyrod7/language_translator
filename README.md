@@ -17,16 +17,36 @@ The CLI currently supports:
 
 ## Installation
 
-Install the project dependencies with:
+For local development from the cloned repository, install the project and dependencies with:
 
 ```bash
 uv sync
 ```
-or
+
+Then run the CLI with:
+
+```bash
+uv run py-polyglot --help
+```
+
+To install the CLI as a user-level tool from the repository, run:
+
+```bash
+uv tool install .
+```
+
+Then run it directly:
+
+```bash
+py-polyglot --help
+```
+
+You can also install it with pip:
 
 ```bash
 python -m pip install .
 ```
+
 ## Local Translation
 
 Local translation uses Hugging Face models from Helsinki-NLP. Only models whose names contain `opus-mt_tiny` are supported. Before translating a word, phrase, or sentence, you must choose a model with `run_local config`:
