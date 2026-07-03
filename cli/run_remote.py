@@ -472,7 +472,6 @@ def configure_remote_provider(remote_provider: str) -> None:
             f"The remote provider '{remote_provider}' is not supported. Choose one of: {', '.join(supported_providers)}"
         )
 
-    # set_key(".env", "LLM_PROVIDER", remote_provider)
     save_environment_variable(key="LLM_PROVIDER", value=remote_provider)
     os.environ["LLM_PROVIDER"] = remote_provider
     print(f"LLM_PROVIDER set to {remote_provider}")
@@ -503,15 +502,12 @@ def configure_remote_api_key() -> None:
     if not remote_api_key:
         raise ValueError("API key cannot be empty or only white spaces.")
 
-    # set_key(".env", api_key_env, remote_api_key)
     save_secret_environment_variable(key=api_key_env, value=remote_api_key)
-    # os.environ[api_key_env] = remote_api_key
     print(f"{api_key_env} has been set.")
 
 
 def configure_remote_model() -> None:
     remote_provider = get_configured_remote_provider()
-    # remote_api_key = os.environ.get(PROVIDER_SPECS[remote_provider]["api_key_env"])
     remote_api_key = get_secret_environment_variable(
         PROVIDER_SPECS[remote_provider]["api_key_env"]
     )
@@ -524,7 +520,6 @@ def configure_remote_model() -> None:
 
     if not remote_api_key:
         configure_remote_api_key()
-        # remote_api_key = os.environ.get(PROVIDER_SPECS[remote_provider]["api_key_env"])
         remote_api_key = get_secret_environment_variable(
             PROVIDER_SPECS[remote_provider]["api_key_env"]
         )
@@ -555,12 +550,6 @@ def configure_remote_model() -> None:
             remote_model_name = input("Input model name: ").strip()
 
         model_env = PROVIDER_SPECS[remote_provider]["model_env"]
-        # set_key(".env", model_env, remote_model_name)
-        # save_environment_variable(key=model_env, value=remote_model_name)
-        # os.environ[model_env] = remote_model_name
-        # print(f"{model_env} has been set to {remote_model_name}")
-
-        # return
     elif remote_provider == "anthropic":
         from anthropic import Anthropic
 
@@ -577,12 +566,6 @@ def configure_remote_model() -> None:
             remote_model_name = input("Input model name: ").strip()
 
         model_env = PROVIDER_SPECS[remote_provider]["model_env"]
-        # set_key(".env", model_env, remote_model_name)
-        # save_environment_variable(key=model_env, value=remote_model_name)
-        # os.environ[model_env] = remote_model_name
-        # print(f"{model_env} has been set to {remote_model_name}")
-
-        # return
     elif remote_provider == "gemini":
         from google import genai
 
@@ -603,12 +586,6 @@ def configure_remote_model() -> None:
             remote_model_name = input("Input model name: ").strip()
 
         model_env = PROVIDER_SPECS[remote_provider]["model_env"]
-        # set_key(".env", model_env, remote_model_name)
-        # save_environment_variable(key=model_env, value=remote_model_name)
-        # os.environ[model_env] = remote_model_name
-        # print(f"{model_env} has been set to {remote_model_name}")
-
-        # return
 
     save_environment_variable(key=model_env, value=remote_model_name)
     os.environ[model_env] = remote_model_name
