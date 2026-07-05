@@ -1,14 +1,18 @@
-import os
 import getpass
+
 from huggingface_hub import list_models
-from cli.config import save_environment_variable
+
+from cli.config import get_setting, save_setting
 
 
 def run_local_command(query, verbose):
     from transformers import MarianMTModel, MarianTokenizer
 
-    hf_token = os.environ.get("HF_TOKEN")
-    model_name = os.environ.get("MODEL_NAME")
+    try:
+        hf_token = get_setting("HF_TOKEN")
+    except RuntimeError:
+        hf_token = None
+    model_name = get_setting("MODEL_NAME")
 
     if not model_name:
         raise ValueError(
@@ -59,8 +63,7 @@ def configure_local_model(model_name: str) -> None:
     if not model_found:
         raise ValueError(f"The model {model_name} could not be found.")
 
-    save_environment_variable(key="MODEL_NAME", value=model_name)
-    os.environ["MODEL_NAME"] = model_name
+    save_setting(key="MODEL_NAME", value=model_name)
     print(f"Default model set to {model_name}")
 
 
@@ -70,7 +73,5 @@ def configure_hf_token() -> None:
     if not token:
         raise ValueError("The HuggingFace token cannot be empty or only white spaces.")
 
-    save_environment_variable(key="HF_TOKEN", value=token)
-
-    os.environ["HF_TOKEN"] = token
+    save_setting(key="HF_TOKEN", value=token)
     print("HuggingFace token has been set.")

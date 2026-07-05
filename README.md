@@ -17,16 +17,36 @@ The CLI currently supports:
 
 ## Installation
 
-Install the project dependencies with:
+For local development from the cloned repository, install the project and dependencies with:
 
 ```bash
 uv sync
 ```
-or
+
+Then run the CLI with:
+
+```bash
+uv run py-polyglot --help
+```
+
+To install the CLI as a user-level tool from the repository, run:
+
+```bash
+uv tool install .
+```
+
+Then run it directly:
+
+```bash
+py-polyglot --help
+```
+
+You can also install it with pip:
 
 ```bash
 python -m pip install .
 ```
+
 ## Local Translation
 
 Local translation uses Hugging Face models from Helsinki-NLP. Only models whose names contain `opus-mt_tiny` are supported. Before translating a word, phrase, or sentence, you must choose a model with `run_local config`:
@@ -72,40 +92,44 @@ uv run py-polyglot run_remote translate "English" "Spanish" "hello"
 
 ## Configuration
 
-The CLI loads configuration from a local `.env` file and writes settings there when you run the config commands.
+The CLI stores non-secret settings in a local config file and stores secrets in the system keyring.
+
+Non-secret settings are written to `config.env` under the user's config directory, usually `~/.config/py-polyglot/config.env` on Linux/macOS.
+
+Secrets are stored with the service name `py-polyglot` in the system keyring. Environment variables with the same names can still be used and take precedence over keyring values.
 
 Local configuration flags:
 
 - `run_local config --list_model_names` prints the supported Helsinki-NLP local models.
 - `run_local config --set_model_name [MODEL_NAME]` stores the local model used by `run_local translate`. If `MODEL_NAME` is omitted, the CLI prompts for it.
-- `run_local config --set_hf_token [TOKEN]` stores the Hugging Face token. If `TOKEN` is omitted, the CLI prompts for it.
+- `run_local config --set_hf_token` prompts for the Hugging Face token and stores it in the system keyring.
 
 Remote configuration flags:
 
 - `run_remote config --set_provider [PROVIDER]` stores the remote provider. Supported providers are `openai`, `anthropic`, and `gemini`. If `PROVIDER` is omitted, the CLI prompts for it.
-- `run_remote config --set_api_key` stores the API key for the configured remote provider.
+- `run_remote config --set_api_key` prompts for the API key for the configured remote provider and stores it in the system keyring.
 - `run_remote config --set_model` lists the available models for the configured remote provider and stores the selected model.
 
-Local translation uses:
+Non-secret settings:
 
 ```env
 MODEL_NAME
-HF_TOKEN
-```
-
-Remote translation uses:
-
-```env
 LLM_PROVIDER
-OPENAI_API_KEY
 OPENAI_MODEL
-ANTHROPIC_API_KEY
 ANTHROPIC_MODEL
-GEMINI_API_KEY
 GEMINI_MODEL
 ```
 
-Only the variables for your selected provider are required. For example, if `LLM_PROVIDER` is set to `openai`, then `OPENAI_API_KEY` and `OPENAI_MODEL` must also be configured.
+Secrets:
+
+```env
+HF_TOKEN
+OPENAI_API_KEY
+ANTHROPIC_API_KEY
+GEMINI_API_KEY
+```
+
+Only the values for your selected provider are required. For example, if `LLM_PROVIDER` is set to `openai`, then `OPENAI_API_KEY` and `OPENAI_MODEL` must also be configured.
 
 ## Supported Providers
 

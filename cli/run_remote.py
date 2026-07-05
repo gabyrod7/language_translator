@@ -1,9 +1,6 @@
-from openai.types.responses.response import Response
-import os
 import getpass
 
-# from dotenv import set_key
-from cli.config import save_environment_variable
+from cli.config import get_setting, save_setting
 
 PROVIDER_SPECS: dict[str, dict[str, str]] = {
     "openai": {"model_env": "OPENAI_MODEL", "api_key_env": "OPENAI_API_KEY"},
@@ -15,11 +12,11 @@ PROVIDER_SPECS: dict[str, dict[str, str]] = {
 def run_remote_command(source_lang: str, target_lang: str, text: str) -> None:
     remote_provider: str = get_configured_remote_provider()
 
-    remote_model_name: str | None = os.environ.get(
-        key=PROVIDER_SPECS[remote_provider]["model_env"]
+    remote_model_name: str | None = get_setting(
+        PROVIDER_SPECS[remote_provider]["model_env"]
     )
-    remote_api_key: str | None = os.environ.get(
-        key=PROVIDER_SPECS[remote_provider]["api_key_env"]
+    remote_api_key: str | None = get_setting(
+        PROVIDER_SPECS[remote_provider]["api_key_env"]
     )
 
     if not remote_model_name:
@@ -80,6 +77,7 @@ def run_with_openai(
     print(text)
 
     import openai
+    from openai.types.responses.response import Response
 
     client = openai.OpenAI(api_key=remote_api_key)
 
@@ -94,7 +92,7 @@ def run_with_openai(
         raise SystemExit(1)
     except openai.APIConnectionError as e:
         print_openai_error(title="Could not connect to OpenAI.", e=e)
-        raise SystemExit(1)
+        raise SystemExit(2)
     except openai.APIError as e:
         print_openai_error(title="OpenAI API error.", e=e)
         raise SystemExit(1)
@@ -469,9 +467,7 @@ def configure_remote_provider(remote_provider: str) -> None:
             f"The remote provider '{remote_provider}' is not supported. Choose one of: {', '.join(supported_providers)}"
         )
 
-    # set_key(".env", "LLM_PROVIDER", remote_provider)
-    save_environment_variable(key="LLM_PROVIDER", value=remote_provider)
-    os.environ["LLM_PROVIDER"] = remote_provider
+    save_setting(key="LLM_PROVIDER", value=remote_provider)
     print(f"LLM_PROVIDER set to {remote_provider}")
 
 
@@ -479,7 +475,10 @@ def configure_remote_api_key() -> None:
     remote_provider = get_configured_remote_provider()
 
     api_key_env = PROVIDER_SPECS[remote_provider]["api_key_env"]
-    remote_api_key = os.environ.get(api_key_env)
+    try:
+        remote_api_key = get_setting(api_key_env)
+    except RuntimeError:
+        remote_api_key = None
 
     if remote_api_key:
         print(f"Configuring API key for {remote_provider}")
@@ -497,20 +496,23 @@ def configure_remote_api_key() -> None:
     if not remote_api_key:
         raise ValueError("API key cannot be empty or only white spaces.")
 
-    # set_key(".env", api_key_env, remote_api_key)
-    save_environment_variable(key=api_key_env, value=remote_api_key)
-    os.environ[api_key_env] = remote_api_key
+    save_setting(key=api_key_env, value=remote_api_key)
     print(f"{api_key_env} has been set.")
 
 
 def configure_remote_model() -> None:
     remote_provider = get_configured_remote_provider()
-    remote_api_key = os.environ.get(PROVIDER_SPECS[remote_provider]["api_key_env"])
-    remote_model_name = os.environ.get(PROVIDER_SPECS[remote_provider]["model_env"])
+    remote_api_key = get_setting(PROVIDER_SPECS[remote_provider]["api_key_env"])
+    remote_model_name = get_setting(PROVIDER_SPECS[remote_provider]["model_env"])
+
+    if remote_provider not in ["openai", "anthropic", "gemini"]:
+        raise NotImplementedError(
+            f"Model configuration for provider {remote_provider} is not implemented yet."
+        )
 
     if not remote_api_key:
         configure_remote_api_key()
-        remote_api_key = os.environ.get(PROVIDER_SPECS[remote_provider]["api_key_env"])
+        remote_api_key = get_setting(PROVIDER_SPECS[remote_provider]["api_key_env"])
 
     if remote_model_name:
         print(
@@ -538,12 +540,6 @@ def configure_remote_model() -> None:
             remote_model_name = input("Input model name: ").strip()
 
         model_env = PROVIDER_SPECS[remote_provider]["model_env"]
-        # set_key(".env", model_env, remote_model_name)
-        save_environment_variable(key=model_env, value=remote_model_name)
-        os.environ[model_env] = remote_model_name
-        print(f"{model_env} has been set to {remote_model_name}")
-
-        return
     elif remote_provider == "anthropic":
         from anthropic import Anthropic
 
@@ -560,12 +556,6 @@ def configure_remote_model() -> None:
             remote_model_name = input("Input model name: ").strip()
 
         model_env = PROVIDER_SPECS[remote_provider]["model_env"]
-        # set_key(".env", model_env, remote_model_name)
-        save_environment_variable(key=model_env, value=remote_model_name)
-        os.environ[model_env] = remote_model_name
-        print(f"{model_env} has been set to {remote_model_name}")
-
-        return
     elif remote_provider == "gemini":
         from google import genai
 
@@ -586,21 +576,14 @@ def configure_remote_model() -> None:
             remote_model_name = input("Input model name: ").strip()
 
         model_env = PROVIDER_SPECS[remote_provider]["model_env"]
-        # set_key(".env", model_env, remote_model_name)
-        save_environment_variable(key=model_env, value=remote_model_name)
-        os.environ[model_env] = remote_model_name
-        print(f"{model_env} has been set to {remote_model_name}")
 
-        return
-
-    raise NotImplementedError(
-        f"Model configuration for provider {remote_provider} is not implemented yet."
-    )
+    save_setting(key=model_env, value=remote_model_name)
+    print(f"{model_env} has been set to {remote_model_name}")
 
 
 def get_configured_remote_provider() -> str:
     supported_providers = tuple(PROVIDER_SPECS.keys())
-    remote_provider = os.environ.get("LLM_PROVIDER")
+    remote_provider = get_setting("LLM_PROVIDER")
 
     if remote_provider not in supported_providers:
         raise ValueError(
