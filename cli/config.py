@@ -1,9 +1,21 @@
 import os
+
 import keyring
-from keyring.errors import KeyringError, NoKeyringError
 from dotenv import load_dotenv, set_key
+from keyring.errors import KeyringError, NoKeyringError
 
 SERVICE_NAME = "py-polyglot"
+SETTINGS_SPEC: dict[str, dict[str, bool]] = {
+    "MODEL_NAME": {"secret": False},
+    "LLM_PROVIDER": {"secret": False},
+    "OPENAI_MODEL": {"secret": False},
+    "ANTHROPIC_MODEL": {"secret": False},
+    "GEMINI_MODEL": {"secret": False},
+    "HF_TOKEN": {"secret": True},
+    "OPENAI_API_KEY": {"secret": True},
+    "ANTHROPIC_API_KEY": {"secret": True},
+    "GEMINI_API_KEY": {"secret": True},
+}
 
 
 def get_config_dir() -> str:
@@ -21,37 +33,45 @@ def get_config_path() -> str:
     return os.path.join(config_home, "config.env")
 
 
-def get_secret_environment_variable(key: str) -> str | None:
-    value = os.environ.get(key)
-    if value:
-        return value
-
-    try:
-        return keyring.get_password(SERVICE_NAME, key)
-    except (KeyringError, NoKeyringError) as e:
-        raise RuntimeError(
-            f"Could not read {key} from the system keyring."
-            "You can set it as an environment variable instead."
-        ) from e
-
-
-def save_secret_environment_variable(key: str, value: str) -> None:
-    try:
-        keyring.set_password(SERVICE_NAME, key, value)
-    except (KeyringError, NoKeyringError) as e:
-        raise RuntimeError(f"Could not save {key} to the system keyring.") from e
-
-
 def load_config_file() -> bool:
     return load_dotenv(get_config_path())
 
 
-def save_environment_variable(key: str, value: str) -> None:
-    config_path = get_config_path()
-    if not os.path.exists(config_path):
-        os.makedirs(get_config_dir(), exist_ok=True)
-        with open(config_path, "w"):
-            pass
-        os.chmod(config_path, 0o0600)
+def get_setting(key: str) -> str | None:
+    spec = SETTINGS_SPEC[key]
 
-    set_key(dotenv_path=config_path, key_to_set=key, value_to_set=value)
+    value = os.environ.get(key)
+    if value:
+        return value
+
+    if spec["secret"]:
+        try:
+            return keyring.get_password(SERVICE_NAME, key)
+        except (KeyringError, NoKeyringError) as e:
+            raise RuntimeError(
+                f"Could not read {key} from the system keyring. "
+                "You can set it as an environment variable instead."
+            ) from e
+
+    return None
+
+
+def save_setting(key: str, value: str) -> None:
+    spec = SETTINGS_SPEC[key]
+
+    if spec["secret"]:
+        try:
+            keyring.set_password(SERVICE_NAME, key, value)
+        except (KeyringError, NoKeyringError) as e:
+            raise RuntimeError(f"Could not save {key} to the system keyring.") from e
+    else:
+        config_path = get_config_path()
+        if not os.path.exists(config_path):
+            os.makedirs(get_config_dir(), exist_ok=True)
+            with open(config_path, "w"):
+                pass
+            os.chmod(config_path, 0o0600)
+
+        set_key(dotenv_path=config_path, key_to_set=key, value_to_set=value)
+
+    os.environ[key] = value
