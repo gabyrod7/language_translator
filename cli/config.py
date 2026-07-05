@@ -28,13 +28,13 @@ def get_config_dir() -> str:
     return os.path.join(config_home, "py-polyglot")
 
 
-def get_config_path() -> str:
+def get_config_file_path() -> str:
     config_home = get_config_dir()
     return os.path.join(config_home, "config.env")
 
 
 def load_config_file() -> bool:
-    return load_dotenv(get_config_path())
+    return load_dotenv(get_config_file_path())
 
 
 def get_setting(key: str) -> str | None:
@@ -65,7 +65,7 @@ def save_setting(key: str, value: str) -> None:
         except (KeyringError, NoKeyringError) as e:
             raise RuntimeError(f"Could not save {key} to the system keyring.") from e
     else:
-        config_path = get_config_path()
+        config_path = get_config_file_path()
         if not os.path.exists(config_path):
             os.makedirs(get_config_dir(), exist_ok=True)
             with open(config_path, "w"):
