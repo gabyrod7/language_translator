@@ -50,6 +50,11 @@ def main():
         action="store_true",
         help="Choose a remote model from the given list.",
     )
+    config_parser.add_argument(
+        "--print_config_file_path",
+        action="store_true",
+        help="Print path to file where settings are stored.",
+    )
 
     args = parser.parse_args()
 
@@ -60,41 +65,44 @@ def main():
             run_local_command(args.query, args.verbose)
 
         case "config":
-            from .config import list_models
-            from .run_local import (
-                configure_hf_token,
-                configure_local_model,
-                list_local_models,
-            )
-            from .run_remote import (
-                configure_remote_api_key,
+            from .config import (
+                get_config_file_path,
+                list_models,
+                set_model_name,
+
+                #configure_hf_token,
+                #configure_local_model,
+                #configure_remote_api_key,
                 configure_remote_model,
                 configure_remote_provider,
+                #list_local_models,
             )
 
-            if (
-                not args.list_model_names
-                and args.set_model_name is None
-                and not args.set_hf_token
-                and args.set_provider is None
-                and not args.set_api_key
-                and not args.set_model
-            ):
+            config_args_used = any(
+                getattr(args, action.dest) != config_parser.get_default(action.dest)
+                for action in config_parser._actions
+                if action.dest != "help"
+            )
+
+            if not config_args_used:
                 config_parser.print_help()
 
             if args.list_model_names:
-                #list_local_models()
                 list_models()
             if args.set_model_name is not None:
-                configure_local_model(model_name=args.set_model_name)
-            if args.set_hf_token:
-                configure_hf_token()
+                set_model_name(model_name=args.set_model_name)
+                #configure_local_model(model_name=args.set_model_name)
+            #if args.set_hf_token:
+            #    configure_hf_token()
             if args.set_provider is not None:
                 configure_remote_provider(args.set_provider)
             if args.set_api_key:
-                configure_remote_api_key()
+                #configure_remote_api_key()
+                pass
             if args.set_model:
                 configure_remote_model()
+            if args.print_config_file_path:
+                print(get_config_file_path())
 
         case _:
             parser.print_help()

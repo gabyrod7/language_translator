@@ -1,8 +1,4 @@
-import getpass
-
-from huggingface_hub import list_models
-
-from cli.config import get_setting, save_setting
+from cli.config import get_setting
 
 
 def run_local_command(query, verbose):
@@ -35,43 +31,3 @@ def run_local_command(query, verbose):
     result = tokenizer.decode(translated[0], skip_special_tokens=True)
 
     print(result)
-
-
-def list_local_models() -> None:
-    model_list = list_models(author="Helsinki-NLP")
-
-    for model in model_list:
-        if "opus-mt_tiny" in model.id:
-            print(model.id)
-
-
-def configure_local_model(model_name: str) -> None:
-    if not model_name:
-        model_name: str = input("Enter model name: ")
-
-    if "opus-mt_tiny" not in model_name:
-        raise ValueError(
-            f"The model name given is '{model_name}' but only the 'opus-mt_tiny' models are supported. Use 'run_local config --list_model_names' flag to find all supported models."
-        )
-
-    model_found = False
-    for model in list_models(author="Helsinki-NLP"):
-        if model_name == model.id:
-            model_found = True
-            break
-
-    if not model_found:
-        raise ValueError(f"The model {model_name} could not be found.")
-
-    save_setting(key="MODEL_NAME", value=model_name)
-    print(f"Default model set to {model_name}")
-
-
-def configure_hf_token() -> None:
-    token: str = getpass.getpass("Enter HuggingFace token: ").strip()
-
-    if not token:
-        raise ValueError("The HuggingFace token cannot be empty or only white spaces.")
-
-    save_setting(key="HF_TOKEN", value=token)
-    print("HuggingFace token has been set.")

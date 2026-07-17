@@ -1,3 +1,4 @@
+import getpass
 import os
 
 import keyring
@@ -5,8 +6,16 @@ from dotenv import load_dotenv, set_key
 from keyring.errors import KeyringError, NoKeyringError
 
 SERVICE_NAME = "py-polyglot"
+PROVIDER_SPECS: dict[str, dict[str, str]] = {
+    "openai": {"model_env": "OPENAI_MODEL", "api_key_env": "OPENAI_API_KEY"},
+    "anthropic": {"model_env": "ANTHROPIC_MODEL", "api_key_env": "ANTHROPIC_API_KEY"},
+    "gemini": {"model_env": "GEMINI_MODEL", "api_key_env": "GEMINI_API_KEY"},
+    "HuggingFace": {"model_env": "HF_MODEL", "api_key_env": "HF_TOKEN"},
+}
 SETTINGS_SPEC: dict[str, dict[str, bool]] = {
-    "MODEL_NAME": {"secret": False},
+    "HF_MODEL": {"secret": False},
+    #"MODEL_NAME": {"secret": False},
+    "LLM_PROVIDER": {"secret": False},
     "PROVIDER": {"secret": False},
     "OPENAI_MODEL": {"secret": False},
     "ANTHROPIC_MODEL": {"secret": False},
@@ -76,17 +85,10 @@ def save_setting(key: str, value: str) -> None:
 
     os.environ[key] = value
 
-def get_api_key_for_provider(provider: str) -> str:
-    if provider == "HuggingFace":
-        return "HF_TOKEN"
-    elif provider == "openai":
-        return "OPENAI_API_KEY"
-    elif provider == "anthropic":
-        return "ANTHROPIC_API_KEY"
-    elif provider == "gemini":
-        return "GEMINI_API_KEY"
-    else:
-        return ''
+
+def get_api_key_for_provider(provider: str | None) -> str:
+    return get_setting(PROVIDER_SPECS[provider]["api_key_env"])
+
 
 def list_models() -> None:
     provider = get_setting("PROVIDER")
@@ -116,4 +118,280 @@ def list_models() -> None:
             for model_id in model_ids:
                 print(model_id)
 
+        case "anthropic":
+            from anthropic import Anthropic
+    
+            client = Anthropic(api_key=api_key)
+            model_ids = [model.id for model in client.models.list().data]
+    
+            print("Anthropic was identified as the LLM provider.")
+            print("Choose among the following models:")
+            for model_id in model_ids:
+                print(model_id)
+    
+        case "gemini":
+            from google import genai
+    
+            client = genai.Client(api_key=api_key)
+            model_ids = [
+                model.name
+                for model in client.models.list()
+                if "generateContent" in model.supported_actions
+            ]
+    
+            print("Gemini was identified as the LLM provider.")
+            print("Choose among the following models:")
+            for model_id in model_ids:
+                print(model_id)
 
+        case _:
+            print(f"The provider {provider} is not supported. Please change to another provider.")
+
+
+def set_model_name(model_name: str) -> None:
+    provider = get_setting("PROVIDER")
+    api_key = get_api_key_for_provider(provider)
+
+    if provider not in ["HuggingFace", "openai", "anthropic", "gemini"]:
+        raise NotImplementedError(
+            f"Model configuration for provider {provider} is not implemented."
+        )
+
+    match provider:
+        case "HuggingFace":
+            from huggingface_hub import list_models
+
+            if not model_name:
+                model_name = input("Enter model name: ").strip()
+
+            if "opus-mt_tiny" not in model_name:
+                raise ValueError(
+                    f"The model name given is '{model_name}' but only the 'opus-mt_tiny' models are supported. Use 'run_local config --list_model_names' flag to find all supported models."
+                )
+
+            model_ids = [model.id for model in list_models(author="Helsinki-NLP")]
+            #model_found = any(
+            #    model_name == model.id 
+            #    for model in list_models(author="Helsinki-NLP")
+            #)
+            #if not model_found:
+            #    raise ValueError(f"The model {model_name} could not be found.")
+
+            #model_env = PROVIDER_SPECS[provider]["model_env"]
+            #save_setting(key=model_env, value=model_name)
+            #print(f"Default model set to {model_name}")
+
+        case "openai":
+            from openai import OpenAI
+
+            client = OpenAI(api_key=api_key)
+            model_ids = [model.id for model in client.models.list().data]
+
+            print("OpenAI was identified as the LLM provider.")
+
+        case "anthropic":
+            from anthropic import Anthropic
+
+            client = Anthropic(api_key=api_key)
+            model_ids = [model.id for model in client.models.list().data]
+
+            print("Anthropic was identified as the LLM provider.")
+
+        case "gemini":
+            from google import genai
+
+            client = genai.Client(api_key=api_key)
+            model_ids = [
+                model.name
+                for model in client.models.list()
+                if "generateContent" in model.supported_actions
+            ]
+
+            print("Gemini was identified as the LLM provider.")
+
+    if not model_name:
+        model_name = input("Enter model name: ").strip()
+
+    model_found = any(
+        model_name == model_id 
+        for model_id in model_ids
+    )
+    if not model_found:
+        raise ValueError(f"The model {model_name} is not provided by {provider}.")
+
+    model_env = PROVIDER_SPECS[provider]["model_env"]
+    save_setting(key=model_env, value=model_name)
+    print(f"{model_env} has been set to {model_name}")
+
+#def list_local_models() -> None:
+#    from huggingface_hub import list_models as list_huggingface_models
+#
+#    model_list = list_huggingface_models(author="Helsinki-NLP")
+#
+#    for model in model_list:
+#        if "opus-mt_tiny" in model.id:
+#            print(model.id)
+
+
+#def configure_local_model(model_name: str) -> None:
+#    from huggingface_hub import list_models as list_huggingface_models
+#
+#    if not model_name:
+#        model_name = input("Enter model name: ")
+#
+#    if "opus-mt_tiny" not in model_name:
+#        raise ValueError(
+#            f"The model name given is '{model_name}' but only the 'opus-mt_tiny' models are supported. Use 'run_local config --list_model_names' flag to find all supported models."
+#        )
+#
+#    model_found = False
+#    for model in list_huggingface_models(author="Helsinki-NLP"):
+#        if model_name == model.id:
+#            model_found = True
+#            break
+#
+#    if not model_found:
+#        raise ValueError(f"The model {model_name} could not be found.")
+#
+#    save_setting(key="MODEL_NAME", value=model_name)
+#    print(f"Default model set to {model_name}")
+#
+#
+#def configure_hf_token() -> None:
+#    token = getpass.getpass("Enter HuggingFace token: ").strip()
+#
+#    if not token:
+#        raise ValueError("The HuggingFace token cannot be empty or only white spaces.")
+#
+#    save_setting(key="HF_TOKEN", value=token)
+#    print("HuggingFace token has been set.")
+
+
+def configure_remote_provider(remote_provider: str) -> None:
+    supported_providers = tuple(PROVIDER_SPECS.keys())
+
+    if not remote_provider:
+        print("Supported providers are:")
+        for provider in supported_providers:
+            print(provider)
+
+        remote_provider = input("Enter provider: ")
+
+    if remote_provider not in supported_providers:
+        raise ValueError(
+            f"The remote provider '{remote_provider}' is not supported. Choose one of: {', '.join(supported_providers)}"
+        )
+
+    save_setting(key="LLM_PROVIDER", value=remote_provider)
+    print(f"LLM_PROVIDER set to {remote_provider}")
+
+
+#def configure_remote_api_key() -> None:
+#    remote_provider = get_configured_remote_provider()
+#
+#    api_key_env = PROVIDER_SPECS[remote_provider]["api_key_env"]
+#    try:
+#        remote_api_key = get_setting(api_key_env)
+#    except RuntimeError:
+#        remote_api_key = None
+#
+#    if remote_api_key:
+#        print(f"Configuring API key for {remote_provider}")
+#        print(f"The environment variable {api_key_env} already has a value.")
+#        print(
+#            "Confirm you want to change it by entering 1. Anything else will skip configuring the API key."
+#        )
+#        flag = input("Enter: ").strip()
+#
+#        if flag != "1":
+#            return
+#
+#    remote_api_key = getpass.getpass(f"Enter API key for {remote_provider}: ").strip()
+#
+#    if not remote_api_key:
+#        raise ValueError("API key cannot be empty or only white spaces.")
+#
+#    save_setting(key=api_key_env, value=remote_api_key)
+#    print(f"{api_key_env} has been set.")
+
+
+def configure_remote_model() -> None:
+    remote_provider = get_configured_remote_provider()
+    remote_api_key = get_setting(PROVIDER_SPECS[remote_provider]["api_key_env"])
+    remote_model_name = get_setting(PROVIDER_SPECS[remote_provider]["model_env"])
+
+    if remote_provider not in PROVIDER_SPECS:
+        raise NotImplementedError(
+            f"Model configuration for provider {remote_provider} is not implemented yet."
+        )
+
+    if not remote_api_key:
+        configure_remote_api_key()
+        remote_api_key = get_setting(PROVIDER_SPECS[remote_provider]["api_key_env"])
+
+    if remote_model_name:
+        print(
+            f"The current model for the provider {remote_provider} is currently {remote_model_name}"
+        )
+        print("Confirm you want to change it by entering 1, otherwise press enter.")
+        flag = input("Enter: ").strip()
+
+        if flag != "1":
+            return
+
+    if remote_provider == "openai":
+        from openai import OpenAI
+
+        client = OpenAI(api_key=remote_api_key)
+        model_ids = [model.id for model in client.models.list().data]
+
+        print("OpenAI was identified as the LLM provider.")
+        print("Choose among the following models:")
+        for model_id in model_ids:
+            print(model_id)
+
+    elif remote_provider == "anthropic":
+        from anthropic import Anthropic
+
+        client = Anthropic(api_key=remote_api_key)
+        model_ids = [model.id for model in client.models.list().data]
+
+        print("Anthropic was identified as the LLM provider.")
+        print("Choose among the following models:")
+        for model_id in model_ids:
+            print(model_id)
+
+    elif remote_provider == "gemini":
+        from google import genai
+
+        client = genai.Client(api_key=remote_api_key)
+        model_ids = [
+            model.name
+            for model in client.models.list()
+            if "generateContent" in model.supported_actions
+        ]
+
+        print("Gemini was identified as the LLM provider.")
+        print("Choose among the following models:")
+        for model_id in model_ids:
+            print(model_id)
+
+    remote_model_name = ""
+    while remote_model_name not in model_ids:
+        remote_model_name = input("Input model name: ").strip()
+
+    model_env = PROVIDER_SPECS[remote_provider]["model_env"]
+    save_setting(key=model_env, value=remote_model_name)
+    print(f"{model_env} has been set to {remote_model_name}")
+
+
+def get_configured_remote_provider() -> str:
+    supported_providers = tuple(PROVIDER_SPECS.keys())
+    remote_provider = get_setting("LLM_PROVIDER")
+
+    if remote_provider not in supported_providers:
+        raise ValueError(
+            f"The remote provider '{remote_provider}' is not supported. Use `run_remote config --set_provider` to configure one of: {', '.join(supported_providers)}"
+        )
+
+    return remote_provider
