@@ -84,8 +84,51 @@ def save_setting(key: str, value: str) -> None:
     os.environ[key] = value
 
 
-def get_api_key_for_provider(provider: str) -> str:
+def get_api_key_for_provider(provider: str) -> str | None:
     return get_setting(PROVIDER_SPECS[provider]["api_key_env"])
+
+
+def get_model_ids_for_provider(provider: str) -> list[str]:
+    api_key = get_api_key_for_provider(provider)
+
+    match provider:
+        case "huggingface":
+            from huggingface_hub import list_models as list_huggingface_models
+
+            return [
+                model.id
+                for model in list_huggingface_models(
+                    author="Helsinki-NLP",
+                    token=api_key,
+                )
+            ]
+
+        case "openai":
+            from openai import OpenAI
+
+            client = OpenAI(api_key=api_key)
+            return [model.id for model in client.models.list().data]
+
+        case "anthropic":
+            from anthropic import Anthropic
+
+            client = Anthropic(api_key=api_key)
+            return [model.id for model in client.models.list().data]
+
+        case "gemini":
+            from google import genai
+
+            client = genai.Client(api_key=api_key)
+            return [
+                model.name
+                for model in client.models.list()
+                if "generateContent" in model.supported_actions
+            ]
+
+        case _:
+            raise NotImplementedError(
+                f"Model configuration for provider {provider} is not implemented."
+            )
 
 
 def list_models() -> None:
@@ -95,55 +138,10 @@ def list_models() -> None:
             f"Model configuration for provider {provider} is not implemented."
         )
 
-    api_key = get_api_key_for_provider(provider)
-
-    match provider:
-        case "huggingface":
-            from huggingface_hub import list_models as list_huggingface_models
-
-            model_list = list_huggingface_models(author="Helsinki-NLP")
-            for model in model_list:
-                print(model.id)
-
-        case "openai":
-            from openai import OpenAI
-
-            client = OpenAI(api_key=api_key)
-            model_ids = [model.id for model in client.models.list().data]
-
-            print("OpenAI was identified as the LLM provider.")
-            print("You can choose among the following models:")
-            for model_id in model_ids:
-                print(model_id)
-
-        case "anthropic":
-            from anthropic import Anthropic
-    
-            client = Anthropic(api_key=api_key)
-            model_ids = [model.id for model in client.models.list().data]
-    
-            print("Anthropic was identified as the LLM provider.")
-            print("Choose among the following models:")
-            for model_id in model_ids:
-                print(model_id)
-    
-        case "gemini":
-            from google import genai
-    
-            client = genai.Client(api_key=api_key)
-            model_ids = [
-                model.name
-                for model in client.models.list()
-                if "generateContent" in model.supported_actions
-            ]
-    
-            print("Gemini was identified as the LLM provider.")
-            print("Choose among the following models:")
-            for model_id in model_ids:
-                print(model_id)
-
-        case _:
-            print(f"The provider {provider} is not supported. Please change to another provider.")
+    print(f"{provider} was identified as the model provider.")
+    print("You can choose among the following models:")
+    for model_id in get_model_ids_for_provider(provider):
+        print(model_id)
 
 
 def set_model_name(model_name: str) -> None:
@@ -153,67 +151,16 @@ def set_model_name(model_name: str) -> None:
             f"Model configuration for provider {provider} is not implemented."
         )
 
-    api_key = get_api_key_for_provider(provider)
-
-    match provider:
-        case "huggingface":
-            from huggingface_hub import list_models
-
-            if not model_name:
-                model_name = input("Enter model name: ").strip()
-
-            if "opus-mt_tiny" not in model_name:
-                raise ValueError(
-                    f"The model name given is '{model_name}' but only the 'opus-mt_tiny' models are supported. Use 'run_local config --list_model_names' flag to find all supported models."
-                )
-
-            model_ids = [model.id for model in list_models(author="Helsinki-NLP")]
-            #model_found = any(
-            #    model_name == model.id 
-            #    for model in list_models(author="Helsinki-NLP")
-            #)
-            #if not model_found:
-            #    raise ValueError(f"The model {model_name} could not be found.")
-
-            #model_env = PROVIDER_SPECS[provider]["model_env"]
-            #save_setting(key=model_env, value=model_name)
-            #print(f"Default model set to {model_name}")
-
-        case "openai":
-            from openai import OpenAI
-
-            client = OpenAI(api_key=api_key)
-            model_ids = [model.id for model in client.models.list().data]
-
-            print("OpenAI was identified as the LLM provider.")
-
-        case "anthropic":
-            from anthropic import Anthropic
-
-            client = Anthropic(api_key=api_key)
-            model_ids = [model.id for model in client.models.list().data]
-
-            print("Anthropic was identified as the LLM provider.")
-
-        case "gemini":
-            from google import genai
-
-            client = genai.Client(api_key=api_key)
-            model_ids = [
-                model.name
-                for model in client.models.list()
-                if "generateContent" in model.supported_actions
-            ]
-
-            print("Gemini was identified as the LLM provider.")
-
     if not model_name:
         model_name = input("Enter model name: ").strip()
 
-    model_found = any(
-        model_name == model_id 
-        for model_id in model_ids
-    )
+    if provider == "huggingface" and "opus-mt_tiny" not in model_name:
+        raise ValueError(
+            f"The model name given is '{model_name}' but only the 'opus-mt_tiny' models are supported. Use 'run_local config --list_model_names' flag to find all supported models."
+        )
+
+    model_ids = get_model_ids_for_provider(provider)
+    model_found = any(model_name == model_id for model_id in model_ids)
     if not model_found:
         raise ValueError(f"The model {model_name} is not provided by {provider}.")
 
