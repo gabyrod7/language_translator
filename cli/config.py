@@ -63,23 +63,31 @@ def get_setting(key: str) -> str | None:
     return None
 
 
+def save_setting_to_config_file(key: str, value: str) -> None:
+    config_path = get_config_file_path()
+    if not os.path.exists(config_path):
+        os.makedirs(get_config_dir(), exist_ok=True)
+        with open(config_path, "w"):
+            pass
+        os.chmod(config_path, 0o0600)
+
+    set_key(dotenv_path=config_path, key_to_set=key, value_to_set=value)
+
+
 def save_setting(key: str, value: str) -> None:
     spec = SETTINGS_SPEC[key]
 
     if spec["secret"]:
         try:
             keyring.set_password(SERVICE_NAME, key, value)
-        except (KeyringError, NoKeyringError) as e:
-            raise RuntimeError(f"Could not save {key} to the system keyring.") from e
+        except (KeyringError, NoKeyringError):
+            print(
+                f"Warning: could not save {key} to the system keyring. "
+                f"Saving it in {get_config_file_path()} instead."
+            )
+            save_setting_to_config_file(key, value)
     else:
-        config_path = get_config_file_path()
-        if not os.path.exists(config_path):
-            os.makedirs(get_config_dir(), exist_ok=True)
-            with open(config_path, "w"):
-                pass
-            os.chmod(config_path, 0o0600)
-
-        set_key(dotenv_path=config_path, key_to_set=key, value_to_set=value)
+        save_setting_to_config_file(key, value)
 
     os.environ[key] = value
 
