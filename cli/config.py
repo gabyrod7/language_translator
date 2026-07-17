@@ -168,6 +168,31 @@ def set_model_name(model_name: str) -> None:
     save_setting(key=model_env, value=model_name)
     print(f"{model_env} has been set to {model_name}")
 
+
+def set_provider(provider: str) -> None:
+    if provider not in PROVIDER_SPECS:
+        print(f"The provider {provider} is not supported. Please choose among the following model providers:")
+        for i, prov in enumerate(PROVIDER_SPECS.keys(), start=1):
+            print(f"{i}. {prov}")
+        while provider not in PROVIDER_SPECS:
+            provider = input("Enter provider: ")
+
+    save_setting("PROVIDER", provider)
+
+def set_api_key() -> None:
+    provider = get_setting(key="PROVIDER")
+    if provider not in PROVIDER_SPECS:
+        print(f"The provider {provider} is not supported. Please choose among the following model providers:")
+        for i, prov in enumerate(PROVIDER_SPECS.keys(), start=1):
+            print(f"{i}. {prov}")
+        while provider not in PROVIDER_SPECS:
+            provider = input("Enter provider: ")
+
+    api_key = getpass.getpass(f"Enter API key or token for {provider}: ").strip()
+#    remote_api_key = getpass.getpass(f"Enter API key for {remote_provider}: ").strip()
+    save_setting(key=PROVIDER_SPECS[provider]["api_key_env"], value=api_key)
+
+
 #def list_local_models() -> None:
 #    from huggingface_hub import list_models as list_huggingface_models
 #
@@ -229,6 +254,7 @@ def configure_remote_provider(remote_provider: str) -> None:
 
     save_setting(key="LLM_PROVIDER", value=remote_provider)
     print(f"LLM_PROVIDER set to {remote_provider}")
+
 
 
 #def configure_remote_api_key() -> None:

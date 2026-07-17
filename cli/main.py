@@ -27,11 +27,11 @@ def main():
         default=None,
         help="Model name to use for local translations",
     )
-    config_parser.add_argument(
-        "--set_hf_token",
-        action="store_true",
-        help="Set HuggingFace token",
-    )
+    #config_parser.add_argument(
+    #    "--set_hf_token",
+    #    action="store_true",
+    #    help="Set HuggingFace token",
+    #)
     config_parser.add_argument(
         "--set_provider",
         nargs="?",
@@ -43,13 +43,13 @@ def main():
     config_parser.add_argument(
         "--set_api_key",
         action="store_true",
-        help="Set remote provider API key when requested",
+        help="Set remote provider API key",
     )
-    config_parser.add_argument(
-        "--set_model",
-        action="store_true",
-        help="Choose a remote model from the given list.",
-    )
+    #config_parser.add_argument(
+    #    "--set_model",
+    #    action="store_true",
+    #    help="Choose a remote model from the given list.",
+    #)
     config_parser.add_argument(
         "--print_config_file_path",
         action="store_true",
@@ -69,12 +69,14 @@ def main():
                 get_config_file_path,
                 list_models,
                 set_model_name,
+                set_provider,
+                set_api_key,
 
                 #configure_hf_token,
                 #configure_local_model,
                 #configure_remote_api_key,
                 configure_remote_model,
-                configure_remote_provider,
+                #configure_remote_provider,
                 #list_local_models,
             )
 
@@ -91,16 +93,16 @@ def main():
                 list_models()
             if args.set_model_name is not None:
                 set_model_name(model_name=args.set_model_name)
-                #configure_local_model(model_name=args.set_model_name)
             #if args.set_hf_token:
             #    configure_hf_token()
             if args.set_provider is not None:
-                configure_remote_provider(args.set_provider)
+                set_provider(args.set_provider)
+                #configure_remote_provider(args.set_provider)
             if args.set_api_key:
+                set_api_key()
                 #configure_remote_api_key()
-                pass
-            if args.set_model:
-                configure_remote_model()
+            #if args.set_model:
+            #    configure_remote_model()
             if args.print_config_file_path:
                 print(get_config_file_path())
 
