@@ -2,8 +2,8 @@ from cli.config import PROVIDER_SPECS, get_setting
 
 
 # TODO: Source and target languages are not wired into this command yet.
-SOURCE_LANG = "source language"
-TARGET_LANG = "target language"
+SOURCE_LANG = "English"
+TARGET_LANG = "German"
 
 
 def run_translate_command(query: str, verbose: bool) -> None:
