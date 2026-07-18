@@ -18,6 +18,8 @@ SETTINGS_SPEC: dict[str, dict[str, bool]] = {
     "OPENAI_MODEL": {"secret": False},
     "ANTHROPIC_MODEL": {"secret": False},
     "GEMINI_MODEL": {"secret": False},
+    "SOURCE_LANGUAGE": {"secret": False},
+    "TARGET_LANGUAGE": {"secret": False},
     "HF_TOKEN": {"secret": True},
     "OPENAI_API_KEY": {"secret": True},
     "ANTHROPIC_API_KEY": {"secret": True},
@@ -54,7 +56,7 @@ def get_setting(key: str) -> str | None:
     if spec["secret"]:
         try:
             return keyring.get_password(SERVICE_NAME, key)
-        except (KeyringError, NoKeyringError) as e:
+        except (KeyringError, NoKeyringError):
             print(
                 f"Warning: could not get {key} to the system keyring. "
                 f"You can save it in {get_config_file_path()} but this is not secure."
@@ -179,7 +181,9 @@ def set_model_name(model_name: str) -> None:
 
 def set_provider(provider: str) -> None:
     if provider not in PROVIDER_SPECS:
-        print(f"The provider {provider} is not supported. Please choose among the following model providers:")
+        print(
+            f"The provider {provider} is not supported. Please choose among the following model providers:"
+        )
         for i, prov in enumerate(PROVIDER_SPECS.keys(), start=1):
             print(f"{i}. {prov}")
         while provider not in PROVIDER_SPECS:
@@ -188,10 +192,29 @@ def set_provider(provider: str) -> None:
     save_setting("PROVIDER", provider)
     print(f"PROVIDER set to {provider}")
 
+
+def set_source_language(source_language: str) -> None:
+    if not source_language:
+        source_language = input("Enter source language: ").strip()
+
+    save_setting(key="SOURCE_LANGUAGE", value=source_language)
+    print(f"SOURCE_LANGUAGE has been set to {source_language}")
+
+
+def set_target_language(target_language: str) -> None:
+    if not target_language:
+        target_language = input("Enter target language: ").strip()
+
+    save_setting(key="TARGET_LANGUAGE", value=target_language)
+    print(f"TARGET_LANGUAGE has been set to {target_language}")
+
+
 def set_api_key() -> None:
     provider = get_setting(key="PROVIDER")
     if provider not in PROVIDER_SPECS:
-        print(f"The provider {provider} is not supported. Please choose among the following model providers:")
+        print(
+            f"The provider {provider} is not supported. Please choose among the following model providers:"
+        )
         for i, prov in enumerate(PROVIDER_SPECS.keys(), start=1):
             print(f"{i}. {prov}")
         while provider not in PROVIDER_SPECS:
@@ -200,93 +223,4 @@ def set_api_key() -> None:
     api_key = getpass.getpass(f"Enter API key or token for {provider}: ").strip()
     save_setting(key=PROVIDER_SPECS[provider]["api_key_env"], value=api_key)
     print(f"Save API for provider {provider}")
-
-
-def configure_remote_provider(remote_provider: str) -> None:
-    supported_providers = tuple(PROVIDER_SPECS.keys())
-
-    if not remote_provider:
-        print("Supported providers are:")
-        for provider in supported_providers:
-            print(provider)
-
-        remote_provider = input("Enter provider: ")
-
-    if remote_provider not in supported_providers:
-        raise ValueError(
-            f"The remote provider '{remote_provider}' is not supported. Choose one of: {', '.join(supported_providers)}"
-        )
-
-    save_setting(key="LLM_PROVIDER", value=remote_provider)
-    print(f"LLM_PROVIDER set to {remote_provider}")
-
-
-def configure_remote_model() -> None:
-    remote_provider = get_configured_remote_provider()
-    remote_api_key = get_setting(PROVIDER_SPECS[remote_provider]["api_key_env"])
-    remote_model_name = get_setting(PROVIDER_SPECS[remote_provider]["model_env"])
-
-    if remote_provider not in PROVIDER_SPECS:
-        raise NotImplementedError(
-            f"Model configuration for provider {remote_provider} is not implemented yet."
-        )
-
-    if not remote_api_key:
-        configure_remote_api_key()
-        remote_api_key = get_setting(PROVIDER_SPECS[remote_provider]["api_key_env"])
-
-    if remote_model_name:
-        print(
-            f"The current model for the provider {remote_provider} is currently {remote_model_name}"
-        )
-        print("Confirm you want to change it by entering 1, otherwise press enter.")
-        flag = input("Enter: ").strip()
-
-        if flag != "1":
-            return
-
-    if remote_provider == "openai":
-        from openai import OpenAI
-
-        client = OpenAI(api_key=remote_api_key)
-        model_ids = [model.id for model in client.models.list().data]
-
-        print("OpenAI was identified as the LLM provider.")
-        print("Choose among the following models:")
-        for model_id in model_ids:
-            print(model_id)
-
-    elif remote_provider == "anthropic":
-        from anthropic import Anthropic
-
-        client = Anthropic(api_key=remote_api_key)
-        model_ids = [model.id for model in client.models.list().data]
-
-        print("Anthropic was identified as the LLM provider.")
-        print("Choose among the following models:")
-        for model_id in model_ids:
-            print(model_id)
-
-    elif remote_provider == "gemini":
-        from google import genai
-
-        client = genai.Client(api_key=remote_api_key)
-        model_ids = [
-            model.name
-            for model in client.models.list()
-            if "generateContent" in model.supported_actions
-        ]
-
-        print("Gemini was identified as the LLM provider.")
-        print("Choose among the following models:")
-        for model_id in model_ids:
-            print(model_id)
-
-    remote_model_name = ""
-    while remote_model_name not in model_ids:
-        remote_model_name = input("Input model name: ").strip()
-
-    model_env = PROVIDER_SPECS[remote_provider]["model_env"]
-    save_setting(key=model_env, value=remote_model_name)
-    print(f"{model_env} has been set to {remote_model_name}")
 

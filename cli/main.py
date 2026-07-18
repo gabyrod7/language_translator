@@ -13,7 +13,9 @@ def main():
     translate_parser.add_argument("query", type=str, help="Word or phrase to translate")
     translate_parser.add_argument("--verbose", action="store_false", help="")
 
-    config_parser = subparsers.add_parser("config", help="Configure translation settings")
+    config_parser = subparsers.add_parser(
+        "config", help="Configure translation settings"
+    )
     config_parser.add_argument(
         "--list_model_names",
         action="store_true",
@@ -41,6 +43,22 @@ def main():
         help="Set remote provider API key",
     )
     config_parser.add_argument(
+        "--set_source_language",
+        nargs="?",
+        const="",
+        type=str,
+        default=None,
+        help="Source language to translate from",
+    )
+    config_parser.add_argument(
+        "--set_target_language",
+        nargs="?",
+        const="",
+        type=str,
+        default=None,
+        help="Target language to translate to",
+    )
+    config_parser.add_argument(
         "--print_config_file_path",
         action="store_true",
         help="Print path to file where settings are stored.",
@@ -51,6 +69,7 @@ def main():
     match args.command:
         case "translate":
             from .translate import run_translate_command
+
             run_translate_command(args.query, args.verbose)
 
         case "config":
@@ -60,6 +79,8 @@ def main():
                 set_model_name,
                 set_provider,
                 set_api_key,
+                set_source_language,
+                set_target_language,
             )
 
             config_args_used = any(
@@ -79,6 +100,10 @@ def main():
                 set_provider(args.set_provider)
             if args.set_api_key:
                 set_api_key()
+            if args.set_source_language is not None:
+                set_source_language(args.set_source_language)
+            if args.set_target_language is not None:
+                set_target_language(args.set_target_language)
             if args.print_config_file_path:
                 print(get_config_file_path())
 
