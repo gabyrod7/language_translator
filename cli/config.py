@@ -166,7 +166,7 @@ def set_model_name(model_name: str) -> None:
 
     if provider == "huggingface" and "opus-mt_tiny" not in model_name:
         raise ValueError(
-            f"The model name given is '{model_name}' but only the 'opus-mt_tiny' models are supported. Use 'run_local config --list_model_names' flag to find all supported models."
+            f"The model name given is '{model_name}' but only the 'opus-mt_tiny' models are supported. Use 'py-polyglot config --list_model_names' flag to find all supported models."
         )
 
     model_ids = get_model_ids_for_provider(provider)
